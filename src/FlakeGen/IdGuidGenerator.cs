@@ -17,6 +17,8 @@ namespace FlakeGen
     /// </summary>
     public class IdGuidGenerator : IIdGenerator<Guid>
     {
+        public static readonly DateTime DefaultEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
         #region Private Constant
 
         private const int IdentifierMaxBytes = 6;
@@ -95,6 +97,7 @@ namespace FlakeGen
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IdGuidGenerator"/> class.
+        /// The default epoch will be used.
         /// </summary>
         /// <param name="identifier">
         /// The instance identifier.  Only the first 6 bytes will be used.
@@ -132,6 +135,13 @@ namespace FlakeGen
 
         #region Private Constructors
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IdGuidGenerator"/> class.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        /// <param name="epoch">The epoch.</param>
+        /// <exception cref="System.ArgumentNullException">identifier</exception>
+        /// <exception cref="System.ArgumentException">Parameter must be an array of ;identifier</exception>
         private IdGuidGenerator(byte[] identifier, ulong epoch)
         {
             if (identifier == null)
@@ -141,7 +151,7 @@ namespace FlakeGen
 
             if (identifier.Length < 6)
             {
-                throw new ArgumentException("Parameter must be an array of ", "identifier");
+                throw new ArgumentException("Parameter must be an array of length at least 6.", "identifier");
             }
 
             _identifier0 = identifier[0];
@@ -150,13 +160,19 @@ namespace FlakeGen
             _identifier3 = identifier[3];
             _identifier4 = identifier[4];
             _identifier5 = identifier[5];
-            _epoch = epoch == 0 ? (ulong)new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks / 10 : epoch;
+            _epoch = epoch == 0 ? (ulong)DefaultEpoch.Ticks / 10 : epoch;
         }
 
         #endregion Public Constructors
 
         #region Public Methods
 
+        /// <summary>
+        /// Generates new identifier every time the method is called
+        /// </summary>
+        /// <returns>
+        /// The new generated identifier.
+        /// </returns>
         public Guid GenerateId()
         {
             lock (_monitor)

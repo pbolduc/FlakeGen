@@ -183,11 +183,11 @@ namespace FlakeGenConsole
                 TimeSpan elapsed = Benchmark(idGuidGenerator, iterations);
                 Console.WriteLine("Elapsed {0} ({1:0.#} id/sec)", elapsed, iterations / elapsed.TotalSeconds);
             }
-
         }
 
         private static TimeSpan Benchmark<T>(IIdGenerator<T> generator, int iterations)
         {
+            // warm up
             for (int i = 0; i < 1024 * 16; i++)
             {
                 generator.GenerateId();

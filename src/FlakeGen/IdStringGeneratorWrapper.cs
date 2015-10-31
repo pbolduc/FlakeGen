@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace FlakeGen
 {
@@ -56,10 +54,10 @@ namespace FlakeGen
             IIdGenerator<long> baseGenerator, Func<long, string> converter, string prefix = null)
         {
             if (baseGenerator == null)
-                throw new ArgumentException("base generator must be provided");
+                throw new ArgumentNullException("baseGenerator", "base generator must be provided");
 
             if (converter == null)
-                throw new ArgumentException("converter must be provided");
+                throw new ArgumentNullException("converter", "converter must be provided");
 
             this.baseGenerator = baseGenerator;
             this.converter = converter;

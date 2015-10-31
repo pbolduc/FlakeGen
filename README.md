@@ -32,13 +32,17 @@ Both services generates k-ordered ids (read time-ordered lexically). Run one on 
 * Id is composed of:
     * **time - 64-bits** - the thousands of milliseconds since the epoch. Epoch is customizable. The default epoch is 1970-01-01T00:00:00.000Z.
     * **configured instance id - 48 bits** - it can be MAC address from a configurable device or database sequence number or any other 6 bytes identifier
-    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same millisecond and reset to 0 when the clock ticks forward. Rolls over every 65536 per machine.  No protection for overflow.  A really fast machine would be required to overflow the sequence number. On an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481), approximately 17,000,000 id values can be generated per second. It would take 65,536,000,000 id/second before an overflow would occur.  This is 3800x faster than an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481) can generate id values.
+    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same 1,000th of a millisecond and reset to 0 when the clock ticks forward. Rolls over every 65536 per machine.  No protection for overflow.  A really fast machine would be required to overflow the sequence number. On an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481), approximately 17,000,000 id values can be generated per second. It would take 65,536,000,000 id/second before an overflow would occur.  This is 3800x faster than an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481) can generate id values.
+
+## Changes from [Flake ID Generators](https://flakeidgenerators.codeplex.com/) on CodePlex
+
+* Does not allocate memory during Guid id generation
+* Faster Guid id generation. Approximately 4 time faster.
 
 ## Usage Guidlines
 
 * Create a single instance per process. It is possible for different instances to create the same id value.
 * Ensure different instances use a different instance id.  
-
 
 ## Examples
 
@@ -62,3 +66,49 @@ Both services generates k-ordered ids (read time-ordered lexically). Run one on 
 		.GetPhysicalAddress()
 		.GetAddressBytes();
 	IdGuidGenerator generator = new IdGuidGenerator(identifier);
+
+## Benchmarks
+
+The FlakeGen console will benchmark the Guid Id Generator.  Below is an example of the performance
+output.
+
+	== Benchmark Guid ids with 134,217,728 iterations ==
+	Elapsed 00:00:08.708 (15,411,853.9 id/sec)
+	Elapsed 00:00:08.729 (15,375,365.2 id/sec)
+	Elapsed 00:00:08.717 (15,396,094.5 id/sec)
+	Elapsed 00:00:08.711 (15,406,082.2 id/sec)
+	Elapsed 00:00:08.694 (15,436,761.0 id/sec)
+	
+and the source code that produced the benchmark.  Any suggestions on improving the benchmark or the performance is welcome.
+
+	private static void BenchmarkGuidGenerator()
+	{
+		int iterations = 128 * 1024 * 1024;
+
+		Console.WriteLine();
+		Console.WriteLine(" == Benchmark Guid ids with {0} iterations ==", iterations);
+
+		for (int i = 0; i < 5; i++)
+		{
+			var idGuidGenerator = new IdGuidGenerator(0x123456789ABCL);
+			TimeSpan elapsed = Benchmark(idGuidGenerator, iterations);
+			Console.WriteLine("Elapsed {0} ({1:0.#} id/sec)", elapsed, iterations / elapsed.TotalSeconds);
+		}
+	}
+
+	private static TimeSpan Benchmark<T>(IIdGenerator<T> generator, int iterations)
+	{
+		// warm up
+		for (int i = 0; i < 1024 * 16; i++)
+		{
+			generator.GenerateId();
+		}
+
+		Stopwatch stopwatch = Stopwatch.StartNew();
+		for (int i = 0; i < iterations; i++)
+		{
+			generator.GenerateId();
+		}
+		stopwatch.Stop();
+		return stopwatch.Elapsed;
+	}
