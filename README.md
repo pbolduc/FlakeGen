@@ -46,8 +46,6 @@ When was this id generated?
 	DateTime when = new DateTime(IdGuidGenerator.DefaultEpoch.Ticks + 0x003362544f358d09);
     Console.WriteLine("{0:O}", when); // Approximately: 2015-10-31T23:23:25.7927945  (UTC)
 
-Internally, IdGuidGenerator must divide the clock's ticks by a divisor, otherwise 
-
 ## Changes from [Flake ID Generators](https://flakeidgenerators.codeplex.com/) on CodePlex
 
 * Does not allocate memory during Guid id generation
@@ -87,13 +85,13 @@ Internally, IdGuidGenerator must divide the clock's ticks by a divisor, otherwis
 The FlakeGen console will benchmark the Guid Id Generator.  Below is an example of the performance
 output.
 
-	== Benchmark Guid ids with 134,217,728 iterations ==
-	Elapsed 00:00:08.708 (15,411,853.9 id/sec)
-	Elapsed 00:00:08.729 (15,375,365.2 id/sec)
-	Elapsed 00:00:08.717 (15,396,094.5 id/sec)
-	Elapsed 00:00:08.711 (15,406,082.2 id/sec)
-	Elapsed 00:00:08.694 (15,436,761.0 id/sec)
-	
+	 == Benchmark Guid ids with 134217728 iterations ==
+	Elapsed 00:00:06.8308996 (19648616.7 id/sec)
+	Elapsed 00:00:06.8281780 (19656448.3 id/sec)
+	Elapsed 00:00:06.8360955 (19633682.4 id/sec)
+	Elapsed 00:00:06.8261470 (19662296.8 id/sec)
+	Elapsed 00:00:06.8665492 (19546605.4 id/sec)
+
 and the source code that produced the benchmark.  Any suggestions on improving the benchmark or the performance is welcome.
 
 	private static void BenchmarkGuidGenerator()
