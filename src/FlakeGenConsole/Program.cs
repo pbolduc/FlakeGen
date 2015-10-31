@@ -172,14 +172,18 @@ namespace FlakeGenConsole
 
         private static void BenchmarkGuidGenerator()
         {
-            var idGuidGenerator = new IdGuidGenerator(0x123456789ABCL);
+            int iterations = 128 * 1024 * 1024;
 
             Console.WriteLine();
-            Console.WriteLine(" == Benchmark Guid ids ==");
+            Console.WriteLine(" == Benchmark Guid ids with {0} iterations ==", iterations);
 
-            int iterations = 32*1024*1024;
-            TimeSpan elapsed = Benchmark(idGuidGenerator, iterations);
-            Console.WriteLine("Elapsed {0} ({1:0.#} id/sec)", elapsed, iterations / elapsed.TotalSeconds);
+            for (int i = 0; i < 5; i++)
+            {
+                var idGuidGenerator = new IdGuidGenerator(0x123456789ABCL);
+                TimeSpan elapsed = Benchmark(idGuidGenerator, iterations);
+                Console.WriteLine("Elapsed {0} ({1:0.#} id/sec)", elapsed, iterations / elapsed.TotalSeconds);
+            }
+
         }
 
         private static TimeSpan Benchmark<T>(IIdGenerator<T> generator, int iterations)
