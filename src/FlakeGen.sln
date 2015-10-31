@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlakeGen", "FlakeGen\FlakeGen.csproj", "{C45EF8BC-9493-485E-94E7-020E1D9E083A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlakeGenConsole", "FlakeGenConsole\FlakeGenConsole.csproj", "{1A26B070-A99D-4721-B179-55048A4DB260}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlakeGen.Test", "FlakeGen.Test\FlakeGen.Test.csproj", "{DC3B9252-C93E-4E37-AA3C-AEF979D73DB6}"
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 4
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs18
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = FlakeGen\\FlakeGen.csproj
+		SccProjectName1 = FlakeGen
+		SccLocalPath1 = FlakeGen
+		SccProjectUniqueName2 = FlakeGenConsole\\FlakeGenConsole.csproj
+		SccProjectName2 = FlakeGenConsole
+		SccLocalPath2 = FlakeGenConsole
+		SccProjectUniqueName3 = FlakeGen.Test\\FlakeGen.Test.csproj
+		SccProjectName3 = FlakeGen.Test
+		SccLocalPath3 = FlakeGen.Test
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C45EF8BC-9493-485E-94E7-020E1D9E083A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C45EF8BC-9493-485E-94E7-020E1D9E083A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C45EF8BC-9493-485E-94E7-020E1D9E083A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C45EF8BC-9493-485E-94E7-020E1D9E083A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A26B070-A99D-4721-B179-55048A4DB260}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A26B070-A99D-4721-B179-55048A4DB260}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A26B070-A99D-4721-B179-55048A4DB260}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A26B070-A99D-4721-B179-55048A4DB260}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC3B9252-C93E-4E37-AA3C-AEF979D73DB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC3B9252-C93E-4E37-AA3C-AEF979D73DB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC3B9252-C93E-4E37-AA3C-AEF979D73DB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC3B9252-C93E-4E37-AA3C-AEF979D73DB6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
