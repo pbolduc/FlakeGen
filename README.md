@@ -37,19 +37,28 @@ Both services generates k-ordered ids (read time-ordered lexically). Run one on 
 ## Usage Guidlines
 
 * Create a single instance per process. It is possible for different instances to create the same id value.
-* Ensure different instances use a different instance id.  Examples of creating instance id values for Guid Id Generator:
+* Ensure different instances use a different instance id.  
 
-			// generate a cryptographically strong random identifier
-			// you would have to be super unlucky to get a collision
-            byte[] identifier = new byte[6];
-            RNGCryptoServiceProvider random = new RNGCryptoServiceProvider();
-            random.GetBytes(identifier);
 
-			// use the MAC address of the first up NIC
-			// multiple apps on the same machine would cause a collision,
-			// ie Azure Web Apps+Web Jobs or IIS and Windows Services
-			byte[] identifier = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(i => i.OperationalStatus == OperationalStatus.Up)
-                .First()
-				.GetPhysicalAddress()
-				.GetAddressBytes();
+## Examples
+
+### Generate a random identifier
+
+	// generate a cryptographically strong random identifier
+	// you would have to be super unlucky to get a collision
+	byte[] identifier = new byte[6];
+	RNGCryptoServiceProvider random = new RNGCryptoServiceProvider();
+	random.GetBytes(identifier);
+	IdGuidGenerator generator = new IdGuidGenerator(identifier);
+
+### Generate the identifier based on the computer's MAC address
+
+	// use the MAC address of the first up NIC
+	// multiple apps on the same machine would cause a collision,
+	// ie Azure Web Apps+Web Jobs or IIS and Windows Services
+	byte[] identifier = NetworkInterface.GetAllNetworkInterfaces()
+		.Where(i => i.OperationalStatus == OperationalStatus.Up)
+		.First()
+		.GetPhysicalAddress()
+		.GetAddressBytes();
+	IdGuidGenerator generator = new IdGuidGenerator(identifier);
