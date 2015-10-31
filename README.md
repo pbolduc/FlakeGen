@@ -1,7 +1,7 @@
 # FlakeGen
-Flake ID Generators is a set of decentralized, k-ordered id generation services in C#.
+Flake ID Generators is a set of decentralized, k-ordered id generation services in C#.  This is a fork of [Flake ID Generators](https://flakeidgenerators.codeplex.com/) on CodePlex.
 
-* FlakeGen.Id64Generator - generates 64-bit ids. The implementation is heavily derivative of Twitter's [Snowflake](https://github.com/twitter/snowflake)written is Scala.
+* FlakeGen.Id64Generator - generates 64-bit ids. The implementation is heavily derivative of Twitter's [Snowflake](https://github.com/twitter/snowflake) written is Scala.
 
 * FlakeGen.IdGuidGenerator - generated Guid (128-bit) ids
 
@@ -25,7 +25,12 @@ Both services generates k-ordered ids (read time-ordered lexically). Run one on 
 
 * Generator written in C#
 * Generated Guid style ids directly sortable
+* Thread-safe - simple lock is used around generation of id values
 * Id is composed of:
-    * **time - 64-bits** - milliseconds since the epoch (Jan 1 1970)
+    * **time - 64-bits** - the UTC milliseconds since the epoch (Jan 1 1970)
     * **configured instance id - 48 bits** - it can be MAC address from a configurable device or database sequence number or any other 6 bytes identifier
-    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same millisecond and reset to 0 when the clock ticks forward. Rolls over every 65536 per machine.
+    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same millisecond and reset to 0 when the clock ticks forward. Rolls over every 65536 per machine.  No protection for overflow.  A really fast machine would be required to overflow the sequence number. On a [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481), approximately 16m id values can be generated per second. It would take 65,536,000 id/second before an overflow would occur.
+	
+## Usage Guidlines
+
+* Create a single instance per process
