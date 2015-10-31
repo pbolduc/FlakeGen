@@ -1,11 +1,12 @@
 ﻿using FlakeGen;
 using System;
-using System.Collections;
 using System.Linq;
 using System.Net.NetworkInformation;
 
 namespace FlakeGenConsole
 {
+    using System.Diagnostics;
+
     class Program
     {
         const string formatter = "{0,22}{1,30}";
@@ -16,6 +17,8 @@ namespace FlakeGenConsole
 
             GuidGenerator();
 
+            BenchmarkGuidGenerator();
+
             MacAddressGenerator();
 
             LongToStringIdGenerator();
@@ -25,6 +28,8 @@ namespace FlakeGenConsole
             LongToLowerHexStringIdGenerator();
 
             LongToBase32StringIdGenerator();
+
+            Console.ReadLine();
         }
 
         private static void LongToBase32StringIdGenerator()
@@ -164,5 +169,34 @@ namespace FlakeGenConsole
             Console.WriteLine(formatter, argument,
                 BitConverter.ToString(byteArray));
         }
+
+        private static void BenchmarkGuidGenerator()
+        {
+            var idGuidGenerator = new IdGuidGenerator(0x123456789ABCL);
+
+            Console.WriteLine();
+            Console.WriteLine(" == Benchmark Guid ids ==");
+
+            int iterations = 32*1024*1024;
+            TimeSpan elapsed = Benchmark(idGuidGenerator, iterations);
+            Console.WriteLine("Elapsed {0} ({1:0.#} id/sec)", elapsed, iterations / elapsed.TotalSeconds);
+        }
+
+        private static TimeSpan Benchmark<T>(IIdGenerator<T> generator, int iterations)
+        {
+            for (int i = 0; i < 1024 * 16; i++)
+            {
+                generator.GenerateId();
+            }
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            for (int i = 0; i < iterations; i++)
+            {
+                generator.GenerateId();
+            }
+            stopwatch.Stop();
+            return stopwatch.Elapsed;
+        }
+
     }
 }

@@ -4,6 +4,8 @@ using System.Linq;
 
 namespace FlakeGen
 {
+    using System.Diagnostics;
+
     /// <summary>
     /// A decentralized, k-ordered id generator
     /// Generated ids are Guid (128-bit wide)
@@ -39,6 +41,8 @@ namespace FlakeGen
         private ulong lastTimestamp;
 
         private int sequence;
+
+        private readonly Func<Guid> nextId;
 
         #endregion Private Fields
 
@@ -79,7 +83,10 @@ namespace FlakeGen
                 throw new ApplicationException("Identifier too long");
 
             this.identifier = identifier;
-            this.epoch = epoch == 0 ? (ulong)new DateTime(1970, 1, 1).Ticks / 10 : epoch;
+            this.epoch = epoch == 0 ? (ulong)new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks / 10 : epoch;
+
+            this.nextId = BitConverter.IsLittleEndian ? (Func<Guid>)LittleEndianNextId : BigEndianNextId;
+            //this.nextId = OriginalNextId;
         }
 
         #endregion Public Constructors
@@ -90,7 +97,7 @@ namespace FlakeGen
         {
             lock (monitor)
             {
-                return NextId();
+                return nextId();
             }
         }
 
@@ -122,32 +129,84 @@ namespace FlakeGen
             }
             else if (lastTimestamp > timestamp)
             {
+                // If the clock was a bit fast and the clock is adjusted
+                // using a time server, the new time could be a number of seconds
+                // behind.
                 throw new ApplicationException("Clock is running backwards");
             }
             else
             {
+                // overflow 16-bits ? need to generate over 65,535,000 id/second?
+                // release build on Intel Core i7 - 3740QM @ 2.7GHz max out at
+                // about 16,000,000 id/sec
                 sequence++;
+                Debug.Assert(sequence <= 65535);
             }
         }
 
-        private Guid NextId()
+        private Guid LittleEndianNextId()
         {
             HandleTime();
 
-            byte[] id = new byte[8];
-            byte[] sequenceBytes = BitConverter.GetBytes(sequence & SequenceBitMask).Take(2).ToArray();
+            ulong timestamp = lastTimestamp;
 
-            Array.Copy(identifier, 0, id, 2, identifier.Length); // identifier - 48 bits
-            Array.Copy(sequenceBytes, 0, id, 0, 2); // sequence - 16 bits
+            Guid id = new Guid(
+                (int)(timestamp >> 32 & 0xFFFFFFFF),
+                (short)(timestamp >> 16 & 0xFFFF),
+                (short)(timestamp & 0xFFFF),
+                identifier[5],
+                identifier[4],
+                identifier[3],
+                identifier[2],
+                identifier[1],
+                identifier[0],
+                (byte)(sequence >> 8 & 0xff),
+                (byte)(sequence & 0xff));
 
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(id);
-
-            return new Guid((int)(lastTimestamp >> 32 & 0xFFFFFFFF),
-                (short)(lastTimestamp >> 16 & 0xFFFF),
-                (short)(lastTimestamp & 0xFFFF),
-                id);
+            return id;
         }
+
+        private Guid BigEndianNextId()
+        {
+            HandleTime();
+
+            ulong timestamp = lastTimestamp;
+
+            Guid id = new Guid(
+                (int)(timestamp >> 32 & 0xFFFFFFFF),
+                (short)(timestamp >> 16 & 0xFFFF),
+                (short)(timestamp & 0xFFFF),
+                (byte)(sequence & 0xff),
+                (byte)(sequence >> 8 & 0xff),
+                identifier[0],
+                identifier[1],
+                identifier[2],
+                identifier[3],
+                identifier[4],
+                identifier[5]);
+
+            return id;
+        }
+
+        ////private Guid OriginalNextId()
+        ////{
+        ////    HandleTime();
+
+        ////    byte[] id = new byte[8];
+        ////    byte[] sequenceBytes = BitConverter.GetBytes(sequence & SequenceBitMask).Take(2).ToArray();
+
+        ////    Array.Copy(identifier, 0, id, 2, identifier.Length); // identifier - 48 bits
+        ////    Array.Copy(sequenceBytes, 0, id, 0, 2); // sequence - 16 bits
+
+        ////    if (BitConverter.IsLittleEndian)
+        ////        Array.Reverse(id);
+
+        ////    return new Guid((int)(lastTimestamp >> 32 & 0xFFFFFFFF),
+        ////        (short)(lastTimestamp >> 16 & 0xFFFF),
+        ////        (short)(lastTimestamp & 0xFFFF),
+        ////        id);
+        ////}
+
 
         private ulong CurrentTime
         {
