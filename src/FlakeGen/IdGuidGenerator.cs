@@ -30,6 +30,7 @@ namespace FlakeGen
         /// </summary>
         private const long SequenceBitMask = -1 ^ (-1 << SequenceBits);
 
+
         #endregion Private Constant
 
         #region Private Fields
@@ -38,7 +39,7 @@ namespace FlakeGen
         /// Object used as a monitor for threads synchronization.
         /// </summary>
         private readonly object _monitor = new object();
-        private readonly ulong _epoch;
+        private readonly long _epoch;
 
         // store the individual bytes instead of an array
         // so we do not incur the overhead of array indexing
@@ -53,7 +54,7 @@ namespace FlakeGen
         /// <summary>
         /// The last timestamp relative to <see cref="_epoch"/> in 1000s of milliseconds.
         /// </summary>
-        private ulong _lastTimestamp;
+        private long _lastTimestamp;
 
         /// <summary>
         /// The sequence within the same 1000th of a millisecond.
@@ -91,7 +92,7 @@ namespace FlakeGen
         /// </param>
         /// <param name="epoch">The epoch.</param>
         public IdGuidGenerator(long identifier, DateTime epoch)
-            : this(BitConverter.GetBytes(identifier), (ulong)epoch.Ticks / 10)
+            : this(BitConverter.GetBytes(identifier), epoch.Ticks)
         {
         }
 
@@ -127,7 +128,7 @@ namespace FlakeGen
         /// <paramref name="identifier"/> has length less than 6.
         /// </exception>
         public IdGuidGenerator(byte[] identifier, DateTime epoch)
-            : this(identifier, (ulong)epoch.Ticks / 10)
+            : this(identifier, epoch.Ticks)
         {
         }
 
@@ -142,7 +143,7 @@ namespace FlakeGen
         /// <param name="epoch">The epoch.</param>
         /// <exception cref="System.ArgumentNullException">identifier</exception>
         /// <exception cref="System.ArgumentException">Parameter must be an array of ;identifier</exception>
-        private IdGuidGenerator(byte[] identifier, ulong epoch)
+        private IdGuidGenerator(byte[] identifier, long epoch)
         {
             if (identifier == null)
             {
@@ -160,7 +161,7 @@ namespace FlakeGen
             _identifier3 = identifier[3];
             _identifier4 = identifier[4];
             _identifier5 = identifier[5];
-            _epoch = epoch == 0 ? (ulong)DefaultEpoch.Ticks / 10 : epoch;
+            _epoch = epoch == 0 ? DefaultEpoch.Ticks : epoch;
         }
 
         #endregion Public Constructors
@@ -220,7 +221,7 @@ namespace FlakeGen
                 // If the clock was a bit fast and the clock is adjusted
                 // using a time server, the new time could be a number of seconds
                 // behind.
-                double backwardDrift = (_lastTimestamp - timestamp) * 0.001;
+                double backwardDrift = (_lastTimestamp - timestamp) * (1.0 * TimeSpan.TicksPerMillisecond);
                 throw new InvalidOperationException(string.Format("Clock moved backwards. Refusing to generate id for {0} milliseconds", (backwardDrift)));
             }
         }
@@ -231,7 +232,7 @@ namespace FlakeGen
 
             if (BitConverter.IsLittleEndian)
             {
-                ulong lastTimestamp = _lastTimestamp;
+                var lastTimestamp = _lastTimestamp;
                 return new Guid(
                     (int)(lastTimestamp >> 32 & 0xFFFFFFFF),
                     (short)(lastTimestamp >> 16 & 0xFFFF),
@@ -247,7 +248,7 @@ namespace FlakeGen
             }
             else
             {
-                ulong lastTimestamp = _lastTimestamp;
+                var lastTimestamp = _lastTimestamp;
                 return new Guid(
                     (int)(lastTimestamp >> 32 & 0xFFFFFFFF),
                     (short)(lastTimestamp >> 16 & 0xFFFF),
@@ -263,12 +264,12 @@ namespace FlakeGen
             }
         }
 
-        private ulong CurrentTime
+        private long CurrentTime
         {
             get
             {
                 // there are 10,000 ticks / millisecond
-                return ((ulong)DateTime.UtcNow.Ticks / 10) - _epoch;
+                return (DateTime.UtcNow.Ticks - _epoch);
             }
         }
 
