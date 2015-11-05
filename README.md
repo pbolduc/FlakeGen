@@ -32,7 +32,7 @@ Both services generates k-ordered ids (read time-ordered lexically). Run one on 
 * Id is composed of:
     * **time - 64-bits** - the 1/10,000th of a millisecond since the epoch. Epoch is customizable. The default epoch is 1970-01-01T00:00:00.000Z.
     * **configured instance id - 48 bits** - it can be MAC address from a configurable device or database sequence number or any other 6 bytes identifier
-    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same 64-bit time value and reset to 0 when the 64-bit time value ticks forward. Rolls over every 65536 per machine.  There is **no protection** for overflow.  A really fast machine would be required to overflow the sequence number. On an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481), approximately 19 million id values can be generated per second. It would take 655,360 million (2^16 x 1000 ms/sec x 10000 ticks/ms) id/second before an overflow would occur.  This is over 8000 times faster than an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481) can generate id values.
+    * **sequence number - 16-bits** - usually 0, incremented when more than one id is requested in the same 64-bit time value and reset to 0 when the 64-bit time value ticks forward. Rolls over every 65536 per machine.  There is **no protection** for overflow.  A really fast machine would be required to overflow the sequence number. On an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481), approximately 22 million id values can be generated per second. It would take 655,360 million (2^16 x 1000 ms/sec x 10000 ticks/ms) id/second before an overflow would occur.  This is almost 30k times faster than an [Intel Core i7-3740QM CPU @ 2.70 GHz](https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+i7-3740QM+%40+2.70GHz&id=1481) can generate id values.
 
 Generated Guid mapped like following:
 
@@ -49,7 +49,7 @@ When was this id generated?
 ## Changes from [Flake ID Generators](https://flakeidgenerators.codeplex.com/) on CodePlex
 
 * Does not allocate memory during Guid id generation
-* Faster Guid id generation. Approximately 5 times faster. 19 million/sec vs 3.8 million/sec
+* Faster Guid id generation. Over 5 times faster. 22 million/sec vs 3.8 million/sec
 * Guid id values generated will not be k-ordered correctly with the original implementation. The time component is now 1000x larger. The original implementation would divide ticks by 10 to generate the time stamp portition of the Guid.  Since ticks is a 64-bit integer, there are no cases that it would overflow the 8 bytes allocated to the time.  Dividing the ticks only slows down the performance. It provides no value.
 
 ## Usage Guidlines
@@ -86,11 +86,11 @@ The FlakeGen console will benchmark the Guid Id Generator.  Below is an example 
 output.
 
 	 == Benchmark Guid ids with 134217728 iterations ==
-	Elapsed 00:00:06.8308996 (19648616.7 id/sec)
-	Elapsed 00:00:06.8281780 (19656448.3 id/sec)
-	Elapsed 00:00:06.8360955 (19633682.4 id/sec)
-	Elapsed 00:00:06.8261470 (19662296.8 id/sec)
-	Elapsed 00:00:06.8665492 (19546605.4 id/sec)
+	Elapsed 00:00:06.0498782 (22185195.1 id/sec)
+	Elapsed 00:00:05.8597165 (22905157.3 id/sec)
+	Elapsed 00:00:05.8937339 (22772953.5 id/sec)
+	Elapsed 00:00:05.8748602 (22846114.4 id/sec)
+	Elapsed 00:00:05.8344245 (23004450.2 id/sec)
 
 and the source code that produced the benchmark.  Any suggestions on improving the benchmark or the performance is welcome.
 

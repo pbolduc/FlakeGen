@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
+﻿
 namespace FlakeGen
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections;
     using System.Diagnostics;
+    using System.Runtime.InteropServices;
+    using System.Threading;
 
     /// <summary>
     /// A decentralized, k-ordered id generator
@@ -15,50 +17,53 @@ namespace FlakeGen
     /// <item><description>16-bit sequence # - usually 0 incremented when more than one id is requested in the same millisecond and reset to 0 when the clock ticks forward</description></item>
     /// </list>
     /// </summary>
+    [StructLayout(LayoutKind.Explicit)]
     public class IdGuidGenerator : IIdGenerator<Guid>
     {
-        public static readonly DateTime DefaultEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        #region Private Constant
-
-        private const int IdentifierMaxBytes = 6;
-
-        private const int SequenceBits = 16;
-
         /// <summary>
-        /// The sequence bit mask. 0x000000000000ffff
+        /// The default epoch used by the id generator.  1970-01-01T00:00:00Z
         /// </summary>
-        private const long SequenceBitMask = -1 ^ (-1 << SequenceBits);
-
-
-        #endregion Private Constant
-
+        public static readonly DateTime DefaultEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        
         #region Private Fields
 
         /// <summary>
         /// Object used as a monitor for threads synchronization.
         /// </summary>
-        private readonly object _monitor = new object();
+        [FieldOffset(0)]
         private readonly long _epoch;
+        [FieldOffset(sizeof(long))]
+        private readonly object _monitor = new object();
 
         // store the individual bytes instead of an array
         // so we do not incur the overhead of array indexing
         // and bound checks when generating id values
+        [FieldOffset(sizeof(long) * 2 + 0)]
         private readonly byte _identifier0;
+        [FieldOffset(sizeof(long) * 2 + 1)]
         private readonly byte _identifier1;
+        [FieldOffset(sizeof(long) * 2 + 2)]
         private readonly byte _identifier2;
+        [FieldOffset(sizeof(long) * 2 + 3)]
         private readonly byte _identifier3;
+        [FieldOffset(sizeof(long) * 2 + 4)]
         private readonly byte _identifier4;
+        [FieldOffset(sizeof(long) * 2 + 5)]
         private readonly byte _identifier5;
 
         /// <summary>
-        /// The last timestamp relative to <see cref="_epoch"/> in 1000s of milliseconds.
+        /// The last tick.
         /// </summary>
-        private long _lastTimestamp;
+        /// <remarks>
+        /// Ensure the updatable fields start on a separate cache line.
+        /// </remarks>
+        [FieldOffset(64)]
+        private long _lastTicks;
 
         /// <summary>
-        /// The sequence within the same 1000th of a millisecond.
+        /// The sequence within the same tick.
         /// </summary>
+        [FieldOffset(64 + sizeof(long))]
         private int _sequence;
 
         #endregion Private Fields
@@ -80,7 +85,7 @@ namespace FlakeGen
         /// The instance identifier. Only the 6 low order bytes will be used.
         /// </param>
         public IdGuidGenerator(long identifier)
-            : this(BitConverter.GetBytes(identifier))
+            : this(identifier, 0)
         {
         }
 
@@ -92,7 +97,7 @@ namespace FlakeGen
         /// </param>
         /// <param name="epoch">The epoch.</param>
         public IdGuidGenerator(long identifier, DateTime epoch)
-            : this(BitConverter.GetBytes(identifier), epoch.Ticks)
+            : this(identifier, epoch.Ticks)
         {
         }
 
@@ -161,6 +166,24 @@ namespace FlakeGen
             _identifier3 = identifier[3];
             _identifier4 = identifier[4];
             _identifier5 = identifier[5];
+
+            _epoch = epoch == 0 ? DefaultEpoch.Ticks : epoch;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IdGuidGenerator"/> class.
+        /// </summary>
+        /// <param name="identifier">The identifier.</param>
+        /// <param name="epoch">The epoch.</param>
+        private IdGuidGenerator(long identifier, long epoch)
+        {
+            _identifier0 = (byte)(identifier >> (8 * 0) & 0xff);
+            _identifier1 = (byte)(identifier >> (8 * 1) & 0xff);
+            _identifier2 = (byte)(identifier >> (8 * 2) & 0xff);
+            _identifier3 = (byte)(identifier >> (8 * 3) & 0xff);
+            _identifier4 = (byte)(identifier >> (8 * 4) & 0xff);
+            _identifier5 = (byte)(identifier >> (8 * 5) & 0xff);
+
             _epoch = epoch == 0 ? DefaultEpoch.Ticks : epoch;
         }
 
@@ -194,21 +217,21 @@ namespace FlakeGen
 
         #region Private Methods
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
         private void HandleTime()
         {
-            var timestamp = CurrentTime;
+            var ticks = DateTime.UtcNow.Ticks;
 
-            if (_lastTimestamp < timestamp)
+            if (_lastTicks < ticks)
             {
-                _lastTimestamp = timestamp;
+                _lastTicks = ticks;
                 _sequence = 0;
             }
-            else if (_lastTimestamp == timestamp)
+            else if (_lastTicks == ticks)
             {
                 // overflow 16-bits ? need to generate over 65,535,000,000 id/second?
                 // release build on Intel Core i7 - 3740QM @ 2.7GHz max out at
@@ -216,13 +239,17 @@ namespace FlakeGen
                 _sequence++;
                 Debug.Assert(_sequence <= 65535);
             }
-            else if (_lastTimestamp > timestamp)
+            else if (ticks < _lastTicks)
             {
                 // If the clock was a bit fast and the clock is adjusted
                 // using a time server, the new time could be a number of seconds
                 // behind.
-                double backwardDrift = (_lastTimestamp - timestamp) * (1.0 * TimeSpan.TicksPerMillisecond);
-                throw new InvalidOperationException(string.Format("Clock moved backwards. Refusing to generate id for {0} milliseconds", (backwardDrift)));
+                //double backwardDrift = (_lastTimestamp - timestamp) * (1.0 * TimeSpan.TicksPerMillisecond);
+                //throw new InvalidOperationException(string.Format("Clock moved backwards. Refusing to generate id for {0} milliseconds", (backwardDrift)));
+                SpinWait.SpinUntil(() => _lastTicks <= DateTime.UtcNow.Ticks);
+
+                _lastTicks = DateTime.UtcNow.Ticks;
+                _sequence = 0;
             }
         }
 
@@ -230,48 +257,22 @@ namespace FlakeGen
         {
             HandleTime();
 
-            if (BitConverter.IsLittleEndian)
-            {
-                var lastTimestamp = _lastTimestamp;
-                return new Guid(
-                    (int)(lastTimestamp >> 32 & 0xFFFFFFFF),
-                    (short)(lastTimestamp >> 16 & 0xFFFF),
-                    (short)(lastTimestamp & 0xFFFF),
-                    _identifier5,
-                    _identifier4,
-                    _identifier3,
-                    _identifier2,
-                    _identifier1,
-                    _identifier0,
-                    (byte)(_sequence >> 8 & 0xff),
-                    (byte)(_sequence & 0xff));
-            }
-            else
-            {
-                var lastTimestamp = _lastTimestamp;
-                return new Guid(
-                    (int)(lastTimestamp >> 32 & 0xFFFFFFFF),
-                    (short)(lastTimestamp >> 16 & 0xFFFF),
-                    (short)(lastTimestamp & 0xFFFF),
-                    (byte)(_sequence & 0xff),
-                    (byte)(_sequence >> 8 & 0xff),
-                    _identifier0,
-                    _identifier1,
-                    _identifier2,
-                    _identifier3,
-                    _identifier4,
-                    _identifier5);
-            }
+            var lastTimestamp = _lastTicks - _epoch;
+
+            return new Guid(
+                (int)(lastTimestamp >> 32 & 0xFFFFFFFF),
+                (short)(lastTimestamp >> 16 & 0xFFFF),
+                (short)(lastTimestamp & 0xFFFF),
+                _identifier5,
+                _identifier4,
+                _identifier3,
+                _identifier2,
+                _identifier1,
+                _identifier0,
+                (byte)(_sequence >> 8 & 0xff),
+                (byte)(_sequence >> 0 & 0xff));
         }
 
-        private long CurrentTime
-        {
-            get
-            {
-                // there are 10,000 ticks / millisecond
-                return (DateTime.UtcNow.Ticks - _epoch);
-            }
-        }
 
         #endregion Private Methods
     }

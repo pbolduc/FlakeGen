@@ -2,15 +2,37 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace FlakeGen.Test
 {
+    using System.Diagnostics;
+
     [TestClass]
     public class IdGuidGeneratorTest
     {
         private const int HowManyIds = 10000;
         private const int HowManyThreads = 10;
+
+        [TestMethod]
+        public void NewGuidSpeedTest()
+        {
+            // warm up
+            for (int i = 0; i < 128 * 1024; i++)
+            {
+                Guid guid = Guid.NewGuid();
+            }
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            for (int i = 0; i < 128*1024*1024; i++)
+            {
+                Guid guid = Guid.NewGuid();
+            }
+            stopwatch.Stop();
+
+            Console.WriteLine("{0} guids/sec", 1.0 * 128 * 1024 * 1024 / stopwatch.Elapsed.TotalSeconds);
+        }
 
         [TestMethod]
         public void UniqueGuidIds()
@@ -64,6 +86,24 @@ namespace FlakeGen.Test
             Assert.AreEqual(
                 HowManyIds * HowManyThreads, allIds.Distinct().Count(),
                 "All ids needs to be unique");
+        }
+
+        [TestMethod]
+        public void IdentiferUsesLowOrderBytesOfInt64()
+        {
+            long identifier = 0x0123456789abcdef;
+
+            IIdGenerator<Guid> idGenerator = new IdGuidGenerator(identifier);
+
+            Guid id = idGenerator.GenerateId();
+            byte[] bytes = id.ToByteArray();
+
+            Assert.AreEqual((byte)0x45, bytes[8 + 0]);
+            Assert.AreEqual((byte)0x67, bytes[8 + 1]);
+            Assert.AreEqual((byte)0x89, bytes[8 + 2]);
+            Assert.AreEqual((byte)0xab, bytes[8 + 3]);
+            Assert.AreEqual((byte)0xcd, bytes[8 + 4]);
+            Assert.AreEqual((byte)0xef, bytes[8 + 5]);
         }
     }
 }
