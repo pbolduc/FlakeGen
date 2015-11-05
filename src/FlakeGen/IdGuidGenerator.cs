@@ -17,54 +17,40 @@ namespace FlakeGen
     /// <item><description>16-bit sequence # - usually 0 incremented when more than one id is requested in the same millisecond and reset to 0 when the clock ticks forward</description></item>
     /// </list>
     /// </summary>
-    [StructLayout(LayoutKind.Explicit)]
     public class IdGuidGenerator : IIdGenerator<Guid>
     {
         /// <summary>
         /// The default epoch used by the id generator.  1970-01-01T00:00:00Z
         /// </summary>
         public static readonly DateTime DefaultEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        
+
         #region Private Fields
+        /// <summary>
+        /// The last tick.
+        /// </summary>
+        private long _lastTicks;
+        private readonly long _epoch;
+
+        /// <summary>
+        /// The sequence within the same tick.
+        /// </summary>
+        private int _sequence;
 
         /// <summary>
         /// Object used as a monitor for threads synchronization.
         /// </summary>
-        [FieldOffset(0)]
-        private readonly long _epoch;
-        [FieldOffset(sizeof(long))]
         private readonly object _monitor = new object();
 
         // store the individual bytes instead of an array
         // so we do not incur the overhead of array indexing
         // and bound checks when generating id values
-        [FieldOffset(sizeof(long) * 2 + 0)]
         private readonly byte _identifier0;
-        [FieldOffset(sizeof(long) * 2 + 1)]
         private readonly byte _identifier1;
-        [FieldOffset(sizeof(long) * 2 + 2)]
         private readonly byte _identifier2;
-        [FieldOffset(sizeof(long) * 2 + 3)]
         private readonly byte _identifier3;
-        [FieldOffset(sizeof(long) * 2 + 4)]
         private readonly byte _identifier4;
-        [FieldOffset(sizeof(long) * 2 + 5)]
         private readonly byte _identifier5;
 
-        /// <summary>
-        /// The last tick.
-        /// </summary>
-        /// <remarks>
-        /// Ensure the updatable fields start on a separate cache line.
-        /// </remarks>
-        [FieldOffset(64)]
-        private long _lastTicks;
-
-        /// <summary>
-        /// The sequence within the same tick.
-        /// </summary>
-        [FieldOffset(64 + sizeof(long))]
-        private int _sequence;
 
         #endregion Private Fields
 
@@ -125,7 +111,7 @@ namespace FlakeGen
         /// <param name="identifier">
         /// The instance identifier.  Only the first 6 bytes will be used.
         /// </param>
-        /// <param name="epoch">The epoch.</param>
+        /// <param name="epoch">The epoch to use. It is recommended to use an UTC date.</param>
         /// <exception cref="ArgumentNullException">
         /// <paramref name="identifier"/> is null.
         /// </exception>
